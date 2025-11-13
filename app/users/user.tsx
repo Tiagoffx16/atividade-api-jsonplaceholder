@@ -1,18 +1,55 @@
-// app/users/user.tsx
-import { deleteUser, getUserById } from "@/services/userService";
+/** @jsxImportSource react */
+/** @tsx */
 import { User } from "@/types/users";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
+declare module "react-native" {
+  interface ViewProps {
+    className?: string;
+  }
+  interface TextProps {
+    className?: string;
+  }
+  interface ScrollViewProps {
+    className?: string;
+  }
+  interface TouchableOpacityProps {
+    className?: string;
+  }
+}
+
+// Tipagem estendida localmente (não altera types compartilhados)
+type ExtendedUser = User & {
+  phone?: string;
+  website?: string;
+  company?: { name?: string; catchPhrase?: string; bs?: string } | null;
+};
+
+async function getUserById(id: number): Promise<ExtendedUser> {
+  const resp = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`);
+  if (!resp.ok) throw new Error("Falha ao buscar usuário");
+  return (await resp.json()) as ExtendedUser;
+}
+
+async function deleteUser(id: number): Promise<void> {
+  const resp = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`, {
+    method: "DELETE",
+  });
+  if (!resp.ok && resp.status !== 200 && resp.status !== 204) {
+    throw new Error("Falha ao deletar usuário");
+  }
+}
+
 export default function UserDetails() {
-  const { id } = useLocalSearchParams<{ id: string }>(); // pega o id da rota
-  const [user, setUser] = useState<User | null>(null);
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
-
   useEffect(() => {
     async function fetchUser() {
       try {
